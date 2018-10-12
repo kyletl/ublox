@@ -84,12 +84,12 @@ class SaraN211Module:
     def setup(self):
         """Running all commands to get the module up an working"""
 
-        logger.info(f'Starting initiation process')
+        logger.info('Starting initiation process')
         self.enable_signaling_connection_urc()
         self.enable_network_registration()
         self.enable_psm_mode()
         self.enable_radio_functions()
-        logger.info(f'Finished initiation process')
+        logger.info('Finished initiation process')
 
     def enable_psm_mode(self):
         self._at_action(self.AT_ENABLE_POWER_SAVING_MODE)
@@ -111,7 +111,7 @@ class SaraN211Module:
 
         """Will initiate commands to connect to operators network and wait until
         connected."""
-        logger.info(f'Trying to connect to operator {operator} network')
+        logger.info('Trying to connect to operator {} network'.format(operator))
         # TODO: Handle connection independent of home network or roaming.
 
         if operator:
@@ -123,42 +123,42 @@ class SaraN211Module:
             else:
                 operator_id = OPERATOR_MAP.get(operator.upper(), None)
                 if operator_id is None:
-                    raise ValueError(f'Operator {operator} is not supported')
+                    raise ValueError('Operator {} is not supported'.format(operator))
 
-            at_command = f'AT+COPS=1,2,"{operator_id}"'
+            at_command = 'AT+COPS=1,2,"{}"'.format(operator_id)
 
         else:
-            at_command = f'AT+COPS=0'
+            at_command = 'AT+COPS=0'
 
         self._at_action(at_command)
         self._await_connection(operator=operator)
-        logger.info(f'Connected to {operator}')
+        logger.info('Connected to {}'.format(operator))
 
     def create_socket(self, port: int):
         """Creates a socket that can be used to send and recieve data"""
-        logger.info(f'Creating socket on port {port}')
-        at_c = f'AT+NSOCR="DGRAM",17,{port}'
+        logger.info('Creating socket on port {}'.format(port))
+        at_c = 'AT+NSOCR="DGRAM",17,{}'.format(port)
         socket_id = self._at_action(at_c)
-        logger.info(f'Socket created with id: {socket_id}')
+        logger.info('Socket created with id: {}'.format(socket_id))
 
     def send_udp_data(self, host: str, port: int, data: str):
         """Send a UDP message"""
-        logger.info(f'Sending UDP message to {host}:{port}  :  {data}')
+        logger.info('Sending UDP message to {}:{}  :  {}'.format(host, port, data))
         _data = binascii.hexlify(data.encode()).upper().decode()
         length = len(data)
-        atc = f'{self.AT_SEND_TO},"{host}",{port},{length},"{_data}"'
+        atc = '{},"{}",{},{},"{}"'.format(self.AT_SEND_TO, host, port, length, _data)
         result = self._at_action(atc)
         return result
 
     def receive_udp_data(self):
         """Recieve a UDP message"""
         # TODO: Do getting of data and parsing in callback on URC.
-        logger.info(f'Waiting for UDP message')
+        logger.info('Waiting for UDP message')
         self._read_line_until_contains('+NSONMI')
         message_info = self.available_messages.pop(0)
-        message = self._at_action(f'AT+NSORF={message_info.decode()}')
+        message = self._at_action('AT+NSORF={}'.format(message_info.decode()))
         response = self._parse_udp_response(message[0])
-        logger.info(f'Recieved UDP message: {response}')
+        logger.info('Recieved UDP message: {}'.format(response))
         return response
 
     def _at_action(self, at_command):
@@ -166,11 +166,11 @@ class SaraN211Module:
         Small wrapper to issue a AT command. Will wait for the Module to return
         OK.
         """
-        logger.debug(f'Applying AT Command: {at_command}')
+        logger.debug('Applying AT Command: {}'.format(at_command))
         self._write(at_command)
         irc = self._read_line_until_contains('OK')
         if irc is not None:
-            logger.debug(f'AT Command response = {irc}')
+            logger.debug('AT Command response = {}'.format(irc))
         return irc
 
     def _write(self, data):
@@ -189,7 +189,7 @@ class SaraN211Module:
 
         self._serial.write(data_to_send)
 
-        logger.debug(f'Sent: {data_to_send}')
+        logger.debug('Sent: {}'.format(data_to_send))
         ack = self._serial.readline()
 
         if self.echo:
@@ -200,7 +200,7 @@ class SaraN211Module:
             ack = ack[(len(data) + 1):]
 
         if ack != b'\r\n':
-            raise ValueError(f'Ack was not received properly, received {ack}')
+            raise ValueError('Ack was not received properly, received {}'.format(ack))
 
     @staticmethod
     def _remove_line_ending(line: bytes):
@@ -251,7 +251,7 @@ class SaraN211Module:
 
         clean_list = [response for response in data_list if not response == b'']
 
-        logger.debug(f'Received: {clean_list}')
+        logger.debug('Received: {}'.format(clean_list))
 
         return irc_list
 
@@ -277,13 +277,13 @@ class SaraN211Module:
                        'CME ERROR': self._handle_cme_error, }
 
         _urc = urc.decode()
-        logger.debug(f'Processing URC: {_urc}')
+        logger.debug('Processing URC: {}'.format(_urc))
         urc_id = _urc[1:_urc.find(':')]
         callback = callbackmap.get(urc_id, None)
         if callback:
             callback(urc)
         else:
-            logger.debug(f'Unhandled urc: {urc}')
+            logger.debug('Unhandled urc: {}'.format(urc))
 
     def _handle_cme_error(self, urc: bytes):
 
@@ -292,7 +292,7 @@ class SaraN211Module:
     def _add_available_message_callback(self, urc: bytes):
         _urc, data = urc.split(b':')
         result = data.lstrip()
-        logger.debug(f'Recieved data: {result}')
+        logger.debug('Recieved data: {}'.format(result))
         self.available_messages.append(result)
 
     def _update_radio_statistics(self):
@@ -307,7 +307,7 @@ class SaraN211Module:
         """
         status = bool(int(urc[-1]))
         self.connected = status
-        logger.info(f'Changed the connection status to {status}')
+        logger.info('Changed the connection status to {}'.format(status))
 
     def _update_eps_reg_status_callback(self, urc):
         """
@@ -317,7 +317,7 @@ class SaraN211Module:
         """
         status = int(chr(urc[-1]))
         self.eps_reg_status = status
-        logger.info(f'Updated status EPS Registration = {status}')
+        logger.info('Updated status EPS Registration = {}'.format(status))
 
     def _update_ip_address_callback(self, urc: bytes):
         """
@@ -327,7 +327,7 @@ class SaraN211Module:
         _urc = urc.decode()
         ip_addr = _urc[(_urc.find('"') + 1):-1]
         self.ip = ip_addr
-        logger.info(f'Updated the IP Address of the module to {ip_addr}')
+        logger.info('Updated the IP Address of the module to {}'.format(ip_addr))
 
     def _parse_radio_stats(self, irc_buffer):
 
@@ -359,7 +359,7 @@ class SaraN211Module:
             elif stat.type == 'RADIO' and stat.name == 'RSRQ':
                 self.radio_rsrq = stat.value
             else:
-                logger.debug(f'Unhandled statistics data: {stat}')
+                logger.debug('Unhandled statistics data: {}'.format(stat))
 
     @staticmethod
     def _parse_radio_stats_string(stats_byte_string: bytes):
@@ -380,18 +380,18 @@ class SaraN211Module:
             return None
 
     def __repr__(self):
-        return f'NBIoTModule(serial_port="{self._serial_port}")'
+        return 'NBIoTModule(serial_port="{}")'.format(self._serial_port)
 
     def _await_connection(self, operator):
 
-        logging.info(f'Awaiting Connection to {operator}')
+        logging.info('Awaiting Connection to {}'.format(operator))
 
         if operator.upper() == 'TELIA':
             self._read_line_until_contains('CEREG: 5')
         elif operator.upper() == 'TRE':
             self._read_line_until_contains('CEREG: 1')
         else:
-            raise ValueError(f'Operator {operator} is not supported')
+            raise ValueError('Operator {} is not supported'.format(operator))
 
 
 class SaraR4Module(SaraN211Module):
@@ -437,7 +437,7 @@ class SaraR4Module(SaraN211Module):
         .. note:
             Only supports NB IoT RAT.
         """
-        logger.info(f'Setting Band Mask for bands {bands}')
+        logger.info('Setting Band Mask for bands {}'.format(bands))
         bands_to_set = self.DEFAULT_BANDS
         if bands:
             bands_to_set = bands
@@ -448,7 +448,7 @@ class SaraR4Module(SaraN211Module):
             individual_band_mask = 1 << (band - 1)
             total_band_mask = total_band_mask | individual_band_mask
 
-        self._at_action(f'AT+UBANDMASK=1,{total_band_mask},{total_band_mask}')
+        self._at_action('AT+UBANDMASK=1,{},{}'.format(total_band_mask, total_band_mask))
 
     def set_radio_mode(self, mode):
         # TODO: Move to parent object. And have list of supported radios on object.
@@ -456,18 +456,18 @@ class SaraR4Module(SaraN211Module):
                      'LTEM': self.AT_ENABLE_LTE_M_RADIO}
 
         response = self._at_action(mode_dict[mode.upper()])
-        logger.info(f'Radio Mode set to {mode}')
+        logger.info('Radio Mode set to {}'.format(mode))
         return response
 
     def set_pdp_context(self, apn, pdp_type="IP", cid=1):
-        logger.info(f'Setting PDP Context')
-        _at_command = f'AT+CGDCONT={cid},"{pdp_type}","{apn}"'
+        logger.info('Setting PDP Context')
+        _at_command = 'AT+CGDCONT={},"{}","{}"'.format(cid, pdp_type, apn)
         self._at_action(_at_command)
-        logger.info(f'PDP Context: {apn}, {pdp_type}')
+        logger.info('PDP Context: {}, {}'.format(apn, pdp_type))
 
     def create_socket(self, socket_type='UDP', port: int = None):
         # TODO: Move to parent object. Have list of supported socket types.
-        logger.info(f'Creating {socket_type} socket')
+        logger.info('Creating {} socket'.format(socket_type))
         if socket_type.upper() == 'UDP':
             at_command = self.AT_CREATE_UDP_SOCKET
 
@@ -476,28 +476,28 @@ class SaraR4Module(SaraN211Module):
 
         else:
             raise ValueError(
-                f'socket_type can only be of type udp|UPD or tcp|TCP')
+                'socket_type can only be of type udp|UPD or tcp|TCP')
 
         if port:
-            at_command += f',{port}'
+            at_command += ',{}'.format(port)
 
         result = self._at_action(at_command)
 
-        logger.info(f'{socket_type} socket {result} created')
+        logger.info('{} socket {} created'.format(socket_type, result))
 
         return result
 
     def send_udp_data(self, host: str, port: int, data: str):
         """Send a UDP message"""
-        logger.info(f'Sending UDP message to {host}:{port}  :  {data}')
+        logger.info('Sending UDP message to {}:{}  :  {}'.format(host, port, data))
         _data = binascii.hexlify(data.encode()).upper().decode()
         length = len(data)
-        atc = f'AT+USOST=0,"{host}",{port},{length},"{_data}"'
+        atc = 'AT+USOST=0,"{}",{},{},"{}"'.format(host, port, length, _data) 
         result = self._at_action(atc)
         return result
 
     def _await_connection(self, operator, timeout=180):
-        logging.info(f'Awaiting Connection to {operator}')
+        logging.info('Awaiting Connection to {}'.format(operator))
         start_time = time.time()
         while True:
             time.sleep(2)
@@ -515,8 +515,8 @@ class SaraR4Module(SaraN211Module):
                     break
 
             else:
-                raise ValueError(f'Operator {operator} is not supported')
+                raise ValueError('Operator {} is not supported'.format(operator))
 
             elapsed_time = time.time() - start_time
             if elapsed_time > timeout:
-                raise ConnectionTimeoutError(f'Could not connect to {operator}')
+                raise ConnectionTimeoutError('Could not connect to {}'.format(operator))
