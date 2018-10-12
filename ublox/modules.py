@@ -370,8 +370,8 @@ class SaraN211Module:
         """
         parts = stats_byte_string.decode().split(':')
 
-        irc: str = parts[0].strip()
-        data: str = parts[1].strip().replace('"', '')
+        irc = parts[0].strip()
+        data = parts[1].strip().replace('"', '')
 
         data_parts = data.split(',')
         if irc == 'NUESTATS':
