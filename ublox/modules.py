@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 Stats = namedtuple('Stats', 'type name value')
 
 OPERATOR_MAP = {'TELIA': 24001, 'TRE': 24002}
-
+# op: TMO - 310260
 
 # TODO: Make communication with the module in a separate thread. Using a queue
 # for communication of AT commands and implement a state-machine for handling
